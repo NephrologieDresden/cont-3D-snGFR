@@ -12,3 +12,10 @@ We extended the workflow in ImageJ [3, 4] by adding continuous measurement along
 [5] RStudio: Integrated Development Environment for R. R. Inc. Boston, MA, http://www.rstudio.com/. <br>
 [6] R Foundation for Statistical Computing (2017). R: A Language and Environment for Statistical Computing. R Core Team. Vienna, Austria, https://www.R-project.org/. <br>
 [7] Wickham, H. (2016). ggplot2: Elegant Graphics for Data Analysis, Springer-Verlag New York. <br>
+
+We acknowlegde the support of the Core Facility Cellular Imaging (CFCI) at the Medical Faculty Carl Gustav Carus, Technical University Dresden. 
+
+The workflow was developed and tested by Friederike Kessel with the help of Hannah Kröger in the lab of Prof. Christian Hugo
+Experimental Nephrology, Department of Internal Medicine of the University Hospital Carl Gustav Carus
+Technical University Dresden
+
