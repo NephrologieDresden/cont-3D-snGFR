@@ -172,7 +172,7 @@ data_process<-function(filename){
       ggsave(paste0("Graphs_", Sys.Date(),"/Cleaner_Frames_", filename, ".png"), width=20, height=15, unit="cm")
       
       # reduce to max intensity/position ("wave")-------------------
-      realpos<-df2$volume[df2$frame==1]
+      realpos<-df2$volume[df2$frame==min(df2$frame)]
       df3<-df2
       for(x in realpos){
         dfx<-subset(df3, volume==x)
@@ -237,7 +237,6 @@ data_process<-function(filename){
       # adjust units (frames to seconds, µm³ to nl) -----------------------------
       dfx$frame<-dfx$frame/60/framerate
       dfx$volume<-dfx$volume/1000000
-      dfx<-subset(dfx, difintens>0)
       
       # linear regression -------------------------------------------------------
       if(nrow(dfx)>0){

@@ -14,7 +14,7 @@ close("*");
 roiManager("Reset");
 roiManager("Show All");
 run("Set Measurements...", "standard median area_fraction redirect=None decimal=6");
-run("Clear Results");
+
 
 // Files
 File.makeDirectory(path+"Results");
@@ -122,12 +122,10 @@ function settingsIntensity(){
 	roiManager("remove slice info");	
 }
 
-
-
 // save settings
 getDateAndTime(year, month, dayOfWeek, dayOfMonth, hour, minute, second, msec);
 saveAs("Results", path+"Results\\Settings_"+year+"_"+month+"_"+dayOfMonth+"_"+hour+"-"+minute+"-"+second+".txt");
-		
+
 files=newArray(nResults);
 Series_LY=newArray(nResults);
 SeriesNo_LY=newArray(nResults);
@@ -157,7 +155,7 @@ for(a=0; a<files.length;a++){
 	run("Bio-Formats Importer", "open=["+path+files[a]+".lif] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT series_"+SeriesNo_LY[a]+1);					
 	rename("Current");					
 	roiManager("Open", path+"Results\\"+files[a]+"_"+Series_LY[a]+".zip");	
-	
+	run("Line Width...", "line=10");
 	measureIntensity();
 	
 	close("Current");
@@ -171,7 +169,6 @@ for(a=0; a<files.length;a++){
 	saveAs("Results", path+"Results\\"+files[a]+"_"+Series_LY[a]+".txt");
 	run("Clear Results");
 	roiManager("Reset");
-
 
 	//measure volume of sample
 	if(SeriesNo_PT[a]!=0){
@@ -220,9 +217,11 @@ function measureIntensity(){
 			
 	//line along center of tubule
 	roiManager("Select", 0);
+	setBatchMode(true);
 	run("Plots...", "width=530 height=300 font=12 draw draw_ticks auto-close minimum=0 maximum=0 interpolate");
 	getDimensions(width, height, channels, slices, frames);
 	run("Clear Results");
+	setBatchMode(true);
 	for(c=1; c<frames+1; c++){	
 		selectWindow("Current");
 		setSlice(c);
@@ -235,7 +234,6 @@ function measureIntensity(){
 		     setResult("frame", nResults-1, c);
 		 }
  		close();
-			
 	}
 }
 
@@ -302,29 +300,46 @@ function compare_stack_position(){
 	roiManager("Update");
 }
 		
-function measureVolume(filepath){	
-	selectImage("C4-Volume");
+function measureVolume(filepath){
+	selectImage("C4-Volume"); 
 	getVoxelSize(width, height, depth, unit);
 	vwidth=width;
 	vdepth=depth;
-	run("Variance...", "radius=2 stack");
-	run("Maximum 3D...", "x="+4*vwidth+" y="+4*vwidth+" z="+4*vdepth);
-	run("Median 3D...", "x="+4*vwidth+" y="+4*vwidth+" z="+4*vdepth);
-	run("Convert to Mask", "method=Default background=Dark calculate black");
+	run("Median 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
+	run("Enhance Contrast", "saturated=1");
+	run("Apply LUT", "stack");
+	//
+	run("Find Edges", "stack");
+
+	getDimensions(width, height, channels, slices, frames);
+	setSlice(slices);
+	run("Convert to Mask", "method=Default background=Dark black");
+	run("Maximum 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
 	
 	selectImage("C2-Volume");
-	run("Subtract Background...", "rolling=50 stack");
-	imageCalculator("Subtract create stack", "C2-Volume","C3-Volume");
-	imageCalculator("Subtract create stack", "Result of C2-Volume","C4-Volume");
-	rename("Volume");
+	run("Duplicate...", "duplicate");
+	run("Find Edges", "stack");
+	run("Subtract Background...", "rolling=10 stack");
+	selectImage("C3-Volume");
+	run("Find Edges", "stack");
+	
+	imageCalculator("Add create stack", "C2-Volume-1","C3-Volume");
+	imageCalculator("Subtract create stack", "C2-Volume","Result of C2-Volume-1");		
+	imageCalculator("Subtract create stack", "Result of C2-Volume","C4-Volume");	
+	rename("Volume"); 
+	run("Median 3D...", "x="+2*vwidth+" y="+2*vwidth+" z="+2*vdepth);
+	run("Minimum 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
+	run("Maximum 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
 	
 	close("C2-Volume");
 	close("C3-Volume");
 	close("C4-Volume");
+	close("C2-Volume-1");
 	close("Result of C2-Volume");	
+	close("Result of C2-Volume-1");	
 	setLocation(500,20,1000,1000);
 
-	//Mask ROI-----------------------------------------------------
+ 	//Mask ROI-----------------------------------------------------
 	getDimensions(width, height, channels, slices, frames);
 	setSlice(slices/1.5);				
 	roiManager("Select", 0);
@@ -351,6 +366,7 @@ function measureVolume(filepath){
 		roiManager("Select", newArray(1,2));
 		roiManager("AND");
 		getStatistics(area, mean, min, max, std, histogram);
+		print(mean);
 		run("Select None");
 		roiManager("Select", newArray(1,2));
 		roiManager("Delete");
@@ -373,14 +389,30 @@ function measureVolume(filepath){
 				run("Clear", "slice");
 			}
 		}
-	
+		roiManager("Select", 0);
+		targetslice=getSliceNumber();	
+		print(targetslice);
+		low_limit=targetslice-40;
+		up_limit=targetslice+25;
+		getDimensions(width, height, channels, slices, frames);
+		if(low_limit<0){
+			low_limit=0;
+		}
+		if(up_limit>slices){
+			up_limit=slices;
+		}
+		run("Select None");
+		run("Duplicate...", "duplicate range="+low_limit+"-"+up_limit);
+		close("ZReduced");
+		rename("ZReduced");
+		
 		run("Select None");									
 		run("Scale...", "x=0.5 y=0.5 z=1.0 interpolation=Bilinear average process create");
 		rename("Scaled");
-		close("ZReduced");
-	
+			
 		selectImage("Scaled");
-		roiManager("Select", 0);		
+		roiManager("Select", 0);
+		sliceno=getSliceNumber();		
 		run("Scale... ", "x=0.5 y=0.5");
 		getSelectionCoordinates(xpoints, ypoints);
 		run("Select None");
@@ -392,7 +424,8 @@ function measureVolume(filepath){
 		
 		//Watershed
 	
-		run("3D Watershed", "seeds_threshold=1 image_threshold="+mean-std+" image=Scaled seeds=peaks radius=20");
+		run("3D Watershed", "seeds_threshold=1 image_threshold="+0.2*mean+" image=Scaled seeds=peaks radius=20");
+
 		run("8-bit");
 		run("Select None");
 		run("Scale...", "x=2 y=2 z=1.0 interpolation=Bilinear average process create");
@@ -411,9 +444,9 @@ function measureVolume(filepath){
 				run("Fill", "slice");
 			}
 		}
-		run("Remove Outliers...", "radius=20 threshold=1 which=Bright stack");
-		run("Remove Outliers...", "radius=30 threshold=100 which=Dark stack");	
-		run("Median 3D...", "x="+4*vwidth+" y="+4*vwidth+" z="+4*vdepth);			
+		run("Median 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
+		run("Minimum 3D...", "x="+5*vwidth+" y="+5*vwidth+" z="+5*vdepth);	
+					
 		run("Select None");
 	
 		//Find biggest volume,	
@@ -422,6 +455,7 @@ function measureVolume(filepath){
 		run("3D Simple Segmentation", "low_threshold=1 min_size=0 max_size=-1");
 		close("Bin");
 		close("watershed");
+		rename("watershed");
 		run("3D Geometrical Measure");
 		max=0;
 		maxobj=0;
@@ -455,15 +489,55 @@ function measureVolume(filepath){
 			}
 		}
 	
-		run("Maximum 3D...", "x="+3*vwidth+" y="+3*vwidth+" z="+3*vdepth);
-		run("Remove Outliers...", "radius="+10*vwidth+" threshold=1 which=Bright stack");
+		run("Maximum 3D...", "x="+6*vwidth+" y="+6*vwidth+" z="+6*vdepth);
+		run("Remove Outliers...", "radius="+10*vwidth+" threshold=10 which=Dark stack");
 		run("8-bit");
 	
 		run("Properties...", "unit=micron pixel_width="+vwidth+" pixel_height="+vwidth+" voxel_depth="+vdepth);
 		getDimensions(width, height, channels, slices, frames);
-			
+		run("Line Width...", "line=1");
+		for(c=1; c<=slices; c++){
+			selectImage("watershed");
+			setSlice(c);
+			setThreshold(1,255);
+			run("Create Selection");
+			if(selectionType()!=-1){
+				roiManager("Add");
+				selectImage("ZReduced");
+				roiManager("Select", roiManager("count")-1);
+				if(selectionType()==9){
+					roiManager("Split");
+					for(d=2; d<roiManager("count");d++){
+						roiManager("Select", d);
+						run("Area to Line");
+						setLineWidth(width);
+						run("Line to Area");			
+						run("Fill", "slice");
+						run("Select None");
+					}
+				}else{
+					roiManager("Select", 1);
+					run("Area to Line");
+					run("Line to Area");			
+					run("Fill", "slice");
+					run("Select None");
+				}
+				
+				roicount=newArray(roiManager("count")-1);
+				for(d=0; d<roicount.length;d++){
+					roicount[d]=d+1;
+				}
+				roiManager("Select", roicount);
+				roiManager("Delete");
+				run("Select None");
+			}
+		}
+		selectImage("ZReduced");
+		
 		saveAs("TIFF", filepath);
-		rename("watershed");
+		setBatchMode(true);
+		close("ZReduced");
+		selectImage("watershed");
 		run("Clear Results");
 				
 		//Get sample volume, slice by slice (Measurement of tubular volume up to each position)
