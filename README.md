@@ -17,5 +17,7 @@ We acknowlegde the support of the Core Facility Cellular Imaging (CFCI) at the M
 
 The workflow was developed and tested by Friederike Kessel with the help of Hannah Kröger in the lab of Prof. Christian Hugo
 Experimental Nephrology, Department of Internal Medicine of the University Hospital Carl Gustav Carus
-Technical University Dresden
+Technical University Dresden. It is published in the NEUBIAS gateway of F1000Research:
+
+Kessel F, Kröger H, Gerlach M et al. A new analysis approach for single nephron GFR in intravital microscopy of mice [version 1; peer review: awaiting peer review]. F1000Research 2020, 9:1372 (https://doi.org/10.12688/f1000research.26888.1)
 
